@@ -61,7 +61,7 @@ impl Publisher
         let client = context.socket(zmq::REQ).unwrap();
         
         //serialize message for transmission
-        let messageSent = Message{messageType: 'P',ip: self.ip,port: self.port,message: "".to_string()};         // create message object
+        let messageSent = Message{messageType: 'P',ip: self.ip.to_string(),port: self.port,message: "".to_string()};         // create message object
         let serialMessage = serde_json::to_string(&messageSent).unwrap();   //serialize message object
         
         //concatenate "tcp://" "IP" ":" "PORT" together
@@ -114,39 +114,20 @@ impl Publisher
         let context = zmq::Context::new();
         let client = context.socket(zmq::REQ).unwrap();
 
-        let messageSent = Message{messageType: 'D',ip: self.ip,port: self.port,message: Mess};         // create message object
+        let messageSent = Message{messageType: 'D',ip: self.ip.to_string(),port: self.port,message: Mess};         // create message object
         let serialMessage = serde_json::to_string(&messageSent).unwrap();   //serialize message object
 
         //check the hashmap to see if the channel information is stored
         if  self.channelInfo.contains_key(&ChannelName)
         {
-            let mut a = "tcp://".to_string();
-            let b = self.channelInfo.get(&ChannelName).unwrap().0.to_string();   //ip   doesnt handle the none case and might cause probs
-            let c = ":".to_string();
-            let d = self.channelInfo.get(&ChannelName).unwrap().1.to_string();   //port doesnt handle the none case and might cause probs
-            
-
-            a.push_str(&b);
-            a.push_str(&c);
-            a.push_str(&d);
-            //connect to the channel using the message information
-
-            //connect to the channel object
-            client.connect(&a);
-            
-            //send the message that has been serialized to the master
-            client.send(&serialMessage,0).unwrap();
-
-            //wait for the response
-            let mut msg = zmq::Message::new();
-            client.recv(&mut msg,0).unwrap();
         }
         else
         {
         //if the information is not stored then need to request it from master using connect
         //print message to screen or choose to handle it by calling the connect function
         self.connect(ChannelName);
-        
+        }
+                
         let mut a = "tcp://".to_string();
         let b = self.channelInfo.get(&ChannelName).unwrap().0.to_string();   //ip   doesnt handle the none case and might cause probs
         let c = ":".to_string();
@@ -167,8 +148,5 @@ impl Publisher
         //wait for the response
         let mut msg = zmq::Message::new();
         client.recv(&mut msg,0).unwrap();
-
-        }
-
     }
 }
