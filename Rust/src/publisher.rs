@@ -98,11 +98,31 @@ impl Publisher
         //Check if channel is stored in hashmap
         if  self.channelInfo.contains_key(&Name)
         {
-        //open a REQ socket and send some kind of info to master saying that you are no longer publishing to channel
-        
-        //we havent discussed how we want this to be sent to master in the message mode need to do that
-        
-        //if it is remove it
+        // setup the socket for the client
+        let context = zmq::Context::new();
+        let client = context.socket(zmq::REQ).unwrap();
+         
+        //serialize message for transmission
+        let messageSent = Message{messageType: 'D',ip: self.ip.to_string(),port: self.port,message: Name.to_string()};         // create message object
+        let serialMessage = serde_json::to_string(&messageSent).unwrap();   //serialize message object
+         
+        //concatenate "tcp://" "IP" ":" "PORT" together
+         
+        let mut a = "tcp://".to_string();
+        a.push_str(&self.masterip.to_string());
+        a.push_str(&":");
+        a.push_str(&self.masterport.to_string());
+                 
+         //connect to the master object
+        client.connect(&a);
+ 
+         //send the message that has been serialized to the master
+        client.send(&serialMessage,0).unwrap();
+         
+         //wait for the response from master so that I can store the message into the message object
+        let mut msg = zmq::Message::new();
+        client.recv(&mut msg,0).unwrap();
+
         self.channelInfo.remove(&Name);
         }
         else    //If the channel does not exist in the publisher then don't do anything
@@ -125,7 +145,7 @@ impl Publisher
         {
         //if the information is not stored then need to request it from master using connect
         //print message to screen or choose to handle it by calling the connect function
-        self.connect(ChannelName);
+        self.connect(ChannelName.to_string());
         }
                 
         let mut a = "tcp://".to_string();
