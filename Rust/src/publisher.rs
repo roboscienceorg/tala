@@ -12,13 +12,14 @@ use serde_json::Value as JsonValue;
 
 //#[derive(Debug)]
 
-type IPPort = (string, u16);        //tuple that holds (IP, Port)
+type IPPort = (String, u16);        //tuple that holds (IP, Port)
 
 //structure for messages that are going to be sent
 #[derive(Serialize, Deserialize)] 
 pub struct Message 
 {     
-     pub messageType: char,            
+     pub messageType: char,
+   
      pub ip: String,  
      pub port: u16, 
      pub message: String, 
@@ -27,7 +28,9 @@ pub struct Message
 //structure for all data that publisher needs to transmit data
 pub struct Publisher
 {
-    pub channelInfo : hashmap<string,IPPort>,
+    pub channelInfo : HashMap<String,IPPort>,
+    pub masterip: String,
+    pub masterport: u16,       
     pub ip: String,     
     pub port:   u16,
 }
@@ -36,12 +39,12 @@ impl Publisher
     //constructor for Publisher Object
     pub fn new(&mut self, MasterIP: String, MasterPort: u16, Name: String, IP: String, Port: u16) -> Publisher
     {
-        return Publisher{self.channelInfo.insert("Master", (&MasterIP, &MasterPort)), &IP, &Port}
+        return Publisher{channelInfo: HashMap::new(), masterip: MasterIP, masterport: MasterPort, ip : IP, port : Port}
     }
-    //fn for adding a channel / master info to the map being used for data storage
+    //fn for adding a channel info to the map being used for data storage
     pub fn add(&mut self, Name: String, IP: String, Port: u16)
     {
-        self.channelInfo.insert(&Name, (&IP, &Port));   //pass in the info about the channel to be stored in the pub
+        self.channelInfo.insert(Name, (IP, Port));   //pass in the info about the channel to be stored in the pub
     }
     //function for connecting to a channel
     pub fn connect(&mut self, Name: String)
@@ -58,27 +61,25 @@ impl Publisher
         let client = context.socket(zmq::REQ).unwrap();
         
         //serialize message for transmission
-        let messageSent = Message{&"P", &self.ip, &self.port, &""};         // create message object
+        let messageSent = Message{messageType: 'P',ip: self.ip,port: self.port,message: "".to_string()};         // create message object
         let serialMessage = serde_json::to_string(&messageSent).unwrap();   //serialize message object
         
         //concatenate "tcp://" "IP" ":" "PORT" together
         
         let mut a = "tcp://".to_string();
-        let b = self.channelInfo.get(&"Master").0.to_string();
-        let c = ":".to_string();
-        let d = self.channelInfo.get(&"Master").1.to_string();
-        
-        a.push_str(&b + &c + &d);
-        
+        a.push_str(&self.masterip.to_string());
+        a.push_str(&":");
+        a.push_str(&self.masterport.to_string());
+                
         //connect to the master object
-        client.connect(a)
+        client.connect(&a);
 
         //send the message that has been serialized to the master
         client.send(&serialMessage,0).unwrap();
 
         //wait for the response from master so that I can store the message into the message object
         let mut msg = zmq::Message::new();
-        client.recv(&msg,0).unwrap();
+        client.recv(&mut msg,0).unwrap();
         
         //deserialize the information
         
@@ -88,8 +89,7 @@ impl Publisher
         let inbound : Message = res.unwrap();
         //add the information to the channelInfo Object
 
-        self.add(&Name, &inbound.ip, &inbound.port);
-
+        self.add(Name, inbound.ip, inbound.port);
         }
     }
     //adds ip address to addressbook with default port range 0-max
@@ -101,7 +101,7 @@ impl Publisher
         //open a REQ socket and send some kind of info to master saying that you are no longer publishing to channel
         
         //we havent discussed how we want this to be sent to master in the message mode need to do that
-
+        
         //if it is remove it
         self.channelInfo.remove(&Name);
         }
@@ -114,35 +114,38 @@ impl Publisher
         let context = zmq::Context::new();
         let client = context.socket(zmq::REQ).unwrap();
 
-        let messageSent = Message{&"D", &self.ip, &self.port, &Mess};         // create message object
+        let messageSent = Message{messageType: 'D',ip: self.ip,port: self.port,message: Mess};         // create message object
         let serialMessage = serde_json::to_string(&messageSent).unwrap();   //serialize message object
 
         //check the hashmap to see if the channel information is stored
         if  self.channelInfo.contains_key(&ChannelName)
         {
             let mut a = "tcp://".to_string();
-            let b = self.channelInfo.get(&ChannelName).0.to_string();
+            let b = self.channelInfo.get(&ChannelName).unwrap().0.to_string();   //ip   doesnt handle the none case and might cause probs
             let c = ":".to_string();
-            let d = self.channelInfo.get(&ChannelName).1.to_string();
+            let d = self.channelInfo.get(&ChannelName).unwrap().1.to_string();   //port doesnt handle the none case and might cause probs
             
-            a.push_str(&b + &c + &d);
+
+            a.push_str(&b);
+            a.push_str(&c);
+            a.push_str(&d);
             //connect to the channel using the message information
 
-                    //connect to the master object
-            client.connect(a)
+            //connect to the master object
+            client.connect(&a);
             
             //send the message that has been serialized to the master
             client.send(&serialMessage,0).unwrap();
 
             //wait for the response
             let mut msg = zmq::Message::new();
-            client.recv(&msg,0).unwrap();
+            client.recv(&mut msg,0).unwrap();
         }
         else
         {
         //if the information is not stored then need to request it from master using connect
         //print message to screen or choose to handle it by calling the connect function
-        println!("Please connect to the channel first.")
+        println!("Please connect to the channel first.");
 
         //then send information
         }
