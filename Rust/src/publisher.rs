@@ -131,7 +131,7 @@ impl Publisher
             a.push_str(&d);
             //connect to the channel using the message information
 
-            //connect to the master object
+            //connect to the channel object
             client.connect(&a);
             
             //send the message that has been serialized to the master
@@ -145,9 +145,29 @@ impl Publisher
         {
         //if the information is not stored then need to request it from master using connect
         //print message to screen or choose to handle it by calling the connect function
-        println!("Please connect to the channel first.");
+        self.connect(ChannelName);
+        
+        let mut a = "tcp://".to_string();
+        let b = self.channelInfo.get(&ChannelName).unwrap().0.to_string();   //ip   doesnt handle the none case and might cause probs
+        let c = ":".to_string();
+        let d = self.channelInfo.get(&ChannelName).unwrap().1.to_string();   //port doesnt handle the none case and might cause probs
+            
 
-        //then send information
+        a.push_str(&b);
+        a.push_str(&c);
+        a.push_str(&d);
+        //connect to the channel using the message information
+
+        //connect to the channel object
+        client.connect(&a);
+            
+        //send the message that has been serialized to the master
+        client.send(&serialMessage,0).unwrap();
+
+        //wait for the response
+        let mut msg = zmq::Message::new();
+        client.recv(&mut msg,0).unwrap();
+
         }
 
     }
