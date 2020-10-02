@@ -9,6 +9,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use serde_json::Result;
 use serde_json::Value as JsonValue;
+use pyo3::prelude::*;
 
 //#[derive(Debug)]
 
@@ -25,6 +26,8 @@ pub struct Message
 } 
 
 //structure for all data that publisher needs to transmit data
+#[pyclass]
+#[derive(Clone)]
 pub struct Subscriber
 {
     pub channelInfo : HashMap<String,IPPort>,
