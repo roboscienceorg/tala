@@ -36,7 +36,7 @@ pub struct Subscriber
 impl Subscriber
 {
     //constructor for Publisher Object
-    pub fn new(&mut self, MasterIP: String, MasterPort: u16, Name: String, IP: String, Port: u16) -> Subscriber
+    pub fn new(&mut self, MasterIP: String, MasterPort: u16, IP: String, Port: u16) -> Subscriber
     {
         return Subscriber{channelInfo: HashMap::new(), masterip: MasterIP, masterport: MasterPort, ip : IP, port : Port}
     }
